@@ -15,11 +15,12 @@ from .async_executor import AsyncDownloader, prepare_dir
 DEBUG = os.getenv("DEBUG")
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
+lg = logging.getLogger('downloader')
 
 class Downloader:
     def __init__(self, api_key, api_secret, thread_number=4):
         self.bearer_token = self.bearer(api_key, api_secret)
-        print("Bearer token is " + self.bearer_token)
+        lg.info("Bearer token is " + self.bearer_token)
         self.last_tweet = None
         self.count = 0
         self.d = AsyncDownloader(100)
@@ -46,7 +47,7 @@ class Downloader:
         num_tweets_checked = 0
         tweets = self.get_tweets(user, self.last_tweet, limit, rts)
         if not tweets:
-            print("Got an empty list of tweets")
+            lg.info("Got an empty list of tweets")
 
         while len(tweets) > 0 and num_tweets_checked < limit:
             for tweet in tweets:
@@ -120,10 +121,10 @@ class Downloader:
             if len(tweets) == 1:
                 return []
             else:
-                print("Got " + str(len(tweets)) + " tweets")
+                lg.info("Got " + str(len(tweets)) + " tweets")
                 return tweets if not start else tweets[1:]
         else:
-            print(
+            lg.error(
                 "An error occurred with the request, status code was "
                 + str(r.status_code)
             )
@@ -180,15 +181,7 @@ class Downloader:
             # save the image in the specified directory (or don't)
             prepare_dir(save_dest)
             if not (os.path.exists(save_dest)):
-                # print("Saving " + image)
-
-                # r = requests.get(real_url, stream=True)
-                # if r.status_code == 200:
-                #     with open(save_dest, "wb") as f:
-                #         r.raw.decode_content = True
-                #         shutil.copyfileobj(r.raw, f)
-                #     self.count += 1
                 self.d.add_url(real_url, save_dest)
 
             else:
-                print(f"Skipping {image} because it was already dowloaded")
+                lg.info(f"Skipping downloaded {image}")
