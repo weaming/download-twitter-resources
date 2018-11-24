@@ -1,0 +1,9 @@
+*.swp
+*.py[cod]
+build/
+dist/
+*.egg-info/
+test.out.csv
+.pytest_cache/
+*.json
+.idea/
