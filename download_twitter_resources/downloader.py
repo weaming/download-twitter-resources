@@ -7,24 +7,23 @@ import sys
 
 import dateutil.parser
 import requests
+import logging
 
 from .exceptions import *
+from .async_executor import AsyncDownloader, prepare_dir
 
-
-def prepare_dir(path):
-    if not path.endswith("/"):
-        path = os.path.dirname(path)
-
-    if not os.path.isdir(path):
-        os.makedirs(path)
+DEBUG = os.getenv("DEBUG")
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
 
 class Downloader:
-    def __init__(self, api_key, api_secret):
+    def __init__(self, api_key, api_secret, thread_number=4):
         self.bearer_token = self.bearer(api_key, api_secret)
         print("Bearer token is " + self.bearer_token)
         self.last_tweet = None
         self.count = 0
+        self.d = AsyncDownloader(100)
+        self.d.start(thread_number)
 
     def download_images(
         self, user, save_dest, size="large", limit=3200, rts=False, include_video=False
@@ -151,7 +150,7 @@ class Downloader:
                     if include_video:
                         variants = x["video_info"]["variants"]
                         variants.sort(key=lambda x: x.get("bitrate", 0))
-                        url = variants[-1]["url"].rsplit('?tag')[0]
+                        url = variants[-1]["url"].rsplit("?tag")[0]
                         rv.append(url)
                 # else:
                 #     import pdb
@@ -181,14 +180,15 @@ class Downloader:
             # save the image in the specified directory (or don't)
             prepare_dir(save_dest)
             if not (os.path.exists(save_dest)):
-                print("Saving " + image)
+                # print("Saving " + image)
 
-                r = requests.get(real_url, stream=True)
-                if r.status_code == 200:
-                    with open(save_dest, "wb") as f:
-                        r.raw.decode_content = True
-                        shutil.copyfileobj(r.raw, f)
-                    self.count += 1
+                # r = requests.get(real_url, stream=True)
+                # if r.status_code == 200:
+                #     with open(save_dest, "wb") as f:
+                #         r.raw.decode_content = True
+                #         shutil.copyfileobj(r.raw, f)
+                #     self.count += 1
+                self.d.add_url(real_url, save_dest)
 
             else:
                 print(f"Skipping {image} because it was already dowloaded")

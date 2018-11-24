@@ -37,6 +37,7 @@ def main():
     parser.add_argument(
         "--rts", help="save images contained in retweets", action="store_true"
     )
+    parser.add_argument("--thread-number", type=int, default=4)
     args = parser.parse_args()
 
     if args.confidential:
@@ -49,7 +50,7 @@ def main():
     else:
         raise ConfidentialsNotSuppliedError(args.confidential)
 
-    downloader = Downloader(api_key, api_secret)
+    downloader = Downloader(api_key, api_secret, args.thread_number)
     downloader.download_images(
         args.user_id, args.dest, args.size, args.limit, args.rts, args.video
     )
