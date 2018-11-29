@@ -210,6 +210,5 @@ class Downloader:
             prepare_dir(save_dest)
             if not (os.path.exists(save_dest)):
                 self.d.add_url(real_url, save_dest)
-
             else:
                 lg.info(f"Skipping downloaded {image}")

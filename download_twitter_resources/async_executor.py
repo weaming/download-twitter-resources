@@ -1,9 +1,10 @@
 import os
 import asyncio
-from multiprocessing import Queue
+from queue import Queue
 from threading import Thread
 import aiohttp
 import logging
+import time
 
 
 def run_async_func_in_loop(future):
@@ -14,7 +15,7 @@ def run_async_func_in_loop(future):
 
 
 def run_in_thread(fn, *args, **kwargs):
-    thread = Thread(target=fn, args=args, kwargs=kwargs, daemon=False)
+    thread = Thread(target=fn, args=args, kwargs=kwargs, daemon=True)
     thread.start()
     return thread
 
@@ -38,7 +39,7 @@ def get_proxy():
 class AsyncDownloader:
     def __init__(self, maxsize=1000):
         self.q = Queue(maxsize)
-        self.stopped = False
+        self.finish_q = Queue(maxsize)
         self.logger = logging.getLogger("async.downloader")
         self.threads = []
 
@@ -48,11 +49,10 @@ class AsyncDownloader:
             self.threads.append(thread)
             self.logger.debug(thread)
 
-    def stop(self):
-        self.stopped = True
-        for t in self.threads:
-            if t.is_alive():
-                self.thread.join()
+    def join(self):
+        while not self.q.empty() or not self.finish_q.empty():
+            self.logger.info('waiting to empty queue')
+            time.sleep(5)
 
     def add_url(self, url, dest):
         self.q.put((url, dest))
@@ -60,11 +60,12 @@ class AsyncDownloader:
 
     async def run(self):
         while 1:
-            if self.stopped is True:
-                return
-
             url, dest_path = self.q.get()
+            # add one running task
+            self.finish_q.put(url)
             await self.download(url, dest_path)
+            # finished one task
+            self.finish_q.get()
 
     async def download(self, url, dest):
         prepare_dir(dest)

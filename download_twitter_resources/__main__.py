@@ -77,11 +77,13 @@ def main():
 
         tweet = downloader.get_tweet(args.resource_id)
         downloader.process_tweet(tweet, args.dest, args.size, args.video)
-        print('finished!')
+        downloader.d.join()
     else:
         downloader.download_images_of_user(
             args.resource_id, args.dest, args.size, args.limit, args.rts, args.video
         )
+        downloader.d.join()
+    print('finished!')
 
 
 if __name__ == "__main__":
