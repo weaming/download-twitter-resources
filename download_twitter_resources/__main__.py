@@ -1,16 +1,27 @@
 import os
 import argparse
 import json
+import re
 from . import Downloader
 from .exceptions import *
+
+
+def get_tweet_id(url):
+    """
+    https://twitter.com/KittenYang/status/1067790621375516673
+    """
+    return re.match(r"(https://.+?status/)?([0-9]{10,})", url).group(2)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Download all images uploaded by a twitter user you specify"
     )
-    parser.add_argument("user_id", help="an ID of a twitter user")
-    parser.add_argument("dest", help="specify where to put images")
+    parser.add_argument(
+        "resource_id",
+        help="An ID of a twitter user. Also accept tweet url or tweet id.",
+    )
+    parser.add_argument("dest", help="Specify where to put images")
     parser.add_argument(
         "-c",
         "--confidential",
@@ -23,6 +34,12 @@ def main():
         help="specify the size of images",
         default="orig",
         choices=["large", "medium", "small", "thumb", "orig"],
+    )
+    parser.add_argument(
+        "--tweet",
+        help="indicate you gived a tweet url or tweet id",
+        default=False,
+        action="store_true",
     )
     parser.add_argument(
         "--video", help="include video", default=False, action="store_true"
@@ -51,9 +68,20 @@ def main():
         raise ConfidentialsNotSuppliedError(args.confidential)
 
     downloader = Downloader(api_key, api_secret, args.thread_number)
-    downloader.download_images(
-        args.user_id, args.dest, args.size, args.limit, args.rts, args.video
-    )
+    if args.tweet:
+        try:
+            args.resource_id = get_tweet_id(args.resource_id)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
+
+        tweet = downloader.get_tweet(args.resource_id)
+        downloader.process_tweet(tweet, args.dest, args.size, args.video)
+        print('finished!')
+    else:
+        downloader.download_images_of_user(
+            args.resource_id, args.dest, args.size, args.limit, args.rts, args.video
+        )
 
 
 if __name__ == "__main__":

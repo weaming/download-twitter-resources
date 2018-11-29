@@ -15,7 +15,8 @@ from .async_executor import AsyncDownloader, prepare_dir
 DEBUG = os.getenv("DEBUG")
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
-lg = logging.getLogger('downloader')
+lg = logging.getLogger("downloader")
+
 
 class Downloader:
     def __init__(self, api_key, api_secret, thread_number=4):
@@ -26,7 +27,7 @@ class Downloader:
         self.d = AsyncDownloader(100)
         self.d.start(thread_number)
 
-    def download_images(
+    def download_images_of_user(
         self, user, save_dest, size="large", limit=3200, rts=False, include_video=False
     ):
         """Download and save images that user uploaded.
@@ -51,21 +52,23 @@ class Downloader:
 
         while len(tweets) > 0 and num_tweets_checked < limit:
             for tweet in tweets:
-                # # create a file name using the timestamp of the image
-                # timestamp = dateutil.parser.parse(tweet["created_at"]
-                #                                  ).timestamp()
-                # ts = str(int(timestamp))
-
-                id_str = tweet["id_str"]
-
-                # save the image
-                images = self.extract_media_list(tweet, include_video)
-                for i, image in enumerate(images, 1):
-                    self.save_media(image, save_dest, f"{id_str}-{i}", size)
-                    num_tweets_checked += 1
-                self.last_tweet = tweet["id"]
+                self.process_tweet(tweet, include_video)
+                num_tweets_checked += 1
 
             tweets = self.get_tweets(user, self.last_tweet, count=limit)
+
+        lg.info(
+            f"no more tweets or the number of tweets checked reach the limit {limit}"
+        )
+
+    def process_tweet(self, tweet, save_dest, size="large", include_video=False):
+        id_str = tweet["id_str"]
+        # save the image
+        images = self.extract_media_list(tweet, include_video)
+        for i, image in enumerate(images, 1):
+            self.save_media(image, save_dest, f"{id_str}-{i}", size)
+        self.last_tweet = tweet["id"]
+        return len(images)
 
     def bearer(self, key, secret):
         """Receive the bearer token and return it.
@@ -130,6 +133,32 @@ class Downloader:
             )
             return []
 
+    def get_tweet(self, id):
+        """Download single tweet
+
+        Args:
+            id: Tweet ID.
+        """
+
+        bearer_token = self.bearer_token
+        url = "https://api.twitter.com/1.1/statuses/show.json"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        payload = {"id": id, "include_entities": "true"}
+
+        # get the request
+        r = requests.get(url, headers=headers, params=payload)
+
+        # check the response
+        if r.status_code == 200:
+            tweet = r.json()
+            lg.info(f"Got tweet with id {id} of user @{tweet['user']['name']}")
+            return tweet
+        else:
+            lg.error(
+                f"An error occurred with the request, status code was {r.status_code}"
+            )
+            return None
+
     def extract_media_list(self, tweet, include_video):
         """Return the url of the image embedded in tweet.
 
@@ -168,7 +197,6 @@ class Downloader:
             name: It is used for naming the image.
             size: Which size of images to download.
         """
-
         if image:
             # image's path with a new name
             ext = os.path.splitext(image)[1]

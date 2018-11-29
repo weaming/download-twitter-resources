@@ -14,7 +14,7 @@ def run_async_func_in_loop(future):
 
 
 def run_in_thread(fn, *args, **kwargs):
-    thread = Thread(target=fn, args=args, kwargs=kwargs)
+    thread = Thread(target=fn, args=args, kwargs=kwargs, daemon=False)
     thread.start()
     return thread
 
