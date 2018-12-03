@@ -1,6 +1,6 @@
 # Download twitter resources
 
-Download tweet images and videos
+Download tweet images and videos. Run threads which has a event loop to download resources asynchronously.
 
 ```
 pip3 install download-twitter-resources
