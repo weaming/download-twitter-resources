@@ -52,7 +52,7 @@ class Downloader:
 
         while len(tweets) > 0 and num_tweets_checked < limit:
             for tweet in tweets:
-                self.process_tweet(tweet, include_video)
+                self.process_tweet(tweet, save_dest, include_video=include_video)
                 num_tweets_checked += 1
 
             tweets = self.get_tweets(user, self.last_tweet, count=limit)
