@@ -21,6 +21,7 @@ def run_in_thread(fn, *args, **kwargs):
 
 
 def prepare_dir(path):
+    path = os.path.abspath(path)
     if not path.endswith("/"):
         path = os.path.dirname(path)
 

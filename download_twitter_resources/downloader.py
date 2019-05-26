@@ -127,10 +127,7 @@ class Downloader:
                 lg.info("Got " + str(len(tweets)) + " tweets")
                 return tweets if not start else tweets[1:]
         else:
-            lg.error(
-                "An error occurred with the request, status code was "
-                + str(r.status_code)
-            )
+            lg.error(f"An error occurred with the request, status code was {r.status_code}")
             return []
 
     def get_tweet(self, id):
