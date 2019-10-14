@@ -1,27 +1,20 @@
-import argparse
-import base64
-import json
-import os
-import shutil
-import sys
-
-import dateutil.parser
-import requests
 import logging
+import os
 
-from .exceptions import *
+import requests
+
+from download_twitter_resources.auth import TwitterAuth, lg
 from .async_executor import AsyncDownloader, prepare_dir
+from .exceptions import *
 
 DEBUG = os.getenv("DEBUG")
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
-lg = logging.getLogger("downloader")
-
 
 class Downloader:
     def __init__(self, api_key, api_secret, thread_number=4):
-        self.bearer_token = self.bearer(api_key, api_secret)
-        lg.info("Bearer token is " + self.bearer_token)
+        self.auth = TwitterAuth(api_key, api_secret)
+        self.auth_headers = self.auth.auth_headers()
         self.last_tweet = None
         self.count = 0
         self.d = AsyncDownloader(100)
@@ -70,34 +63,6 @@ class Downloader:
         self.last_tweet = tweet["id"]
         return len(images)
 
-    def bearer(self, key, secret):
-        """Receive the bearer token and return it.
-
-        Args:
-            key: API key.
-            secret: API string.
-        """
-
-        # setup
-        credential = base64.b64encode(
-            bytes("{}:{}".format(key, secret), "utf-8")
-        ).decode()
-        url = "https://api.twitter.com/oauth2/token"
-        headers = {
-            "Authorization": "Basic {}".format(credential),
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        }
-        payload = {"grant_type": "client_credentials"}
-
-        # post the request
-        r = requests.post(url, headers=headers, params=payload)
-
-        # check the response
-        if r.status_code == 200:
-            return r.json()["access_token"]
-        else:
-            raise BearerTokenNotFetchedError()
-
     def get_tweets(self, user, start=None, count=200, rts=False):
         """Download user's tweets and return them as a list.
 
@@ -108,15 +73,13 @@ class Downloader:
         """
 
         # setup
-        bearer_token = self.bearer_token
         url = "https://api.twitter.com/1.1/statuses/user_timeline.json"
-        headers = {"Authorization": "Bearer {}".format(bearer_token)}
         payload = {"screen_name": user, "count": count, "include_rts": rts}
         if start:
             payload["max_id"] = start
 
         # get the request
-        r = requests.get(url, headers=headers, params=payload)
+        r = requests.get(url, headers=self.auth_headers, params=payload)
 
         # check the response
         if r.status_code == 200:
@@ -127,7 +90,9 @@ class Downloader:
                 lg.info("Got " + str(len(tweets)) + " tweets")
                 return tweets if not start else tweets[1:]
         else:
-            lg.error(f"An error occurred with the request, status code was {r.status_code}")
+            lg.error(
+                f"An error occurred with the request, status code was {r.status_code}"
+            )
             return []
 
     def get_tweet(self, id):
@@ -137,13 +102,11 @@ class Downloader:
             id: Tweet ID.
         """
 
-        bearer_token = self.bearer_token
         url = "https://api.twitter.com/1.1/statuses/show.json"
-        headers = {"Authorization": f"Bearer {bearer_token}"}
         payload = {"id": id, "include_entities": "true"}
 
         # get the request
-        r = requests.get(url, headers=headers, params=payload)
+        r = requests.get(url, headers=self.auth_headers, params=payload)
 
         # check the response
         if r.status_code == 200:
