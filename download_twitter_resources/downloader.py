@@ -1,8 +1,6 @@
 import logging
 import os
 
-import requests
-
 from download_twitter_resources.auth import TwitterAuth, lg
 from .async_executor import AsyncDownloader, prepare_dir
 from .exceptions import *
@@ -28,7 +26,7 @@ class Downloader:
             access_token_secret,
             private=private,
         )
-        self.auth_headers = None if private else self.auth.auth_headers()
+        self.session = self.auth.session()
         self.last_tweet = None
         self.count = 0
         self.d = AsyncDownloader(100)
@@ -93,11 +91,7 @@ class Downloader:
             payload["max_id"] = start
 
         # get the request
-        r = requests.get(
-            url,
-            headers=self.auth_headers or self.auth.auth_headers(url, payload, 'GET'),
-            params=payload,
-        )
+        r = self.session.get(url, params=payload)
 
         # check the response
         if r.status_code == 200:
@@ -125,11 +119,7 @@ class Downloader:
         payload = {"id": id, "include_entities": "true"}
 
         # get the request
-        r = requests.get(
-            url,
-            headers=self.auth_headers or self.auth.auth_headers(url, payload, 'GET'),
-            params=payload,
-        )
+        r = self.session.get(url, params=payload)
 
         # check the response
         if r.status_code == 200:
