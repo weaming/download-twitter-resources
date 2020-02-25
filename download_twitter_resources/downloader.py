@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 import subprocess
 
 from download_twitter_resources.auth import TwitterAuth, lg
@@ -100,6 +101,7 @@ class Downloader:
     ):
         id_str = tweet["id_str"]
         preview_mode = bool(keys_included or keys_excluded)
+        self.last_tweet = tweet["id"]
         if preview_mode:
             text = tweet['text']
             if any(x in text for x in keys_excluded):
@@ -107,7 +109,7 @@ class Downloader:
 
             if any(x in text for x in keys_included):
                 print(tweet['created_at'], tweet['id'])
-                print(text)
+                print(json.dumps(tweet, ensure_ascii=False))
                 print('-' * columns)
                 images = self.extract_media_list(tweet, include_video)
                 return len(images)
@@ -117,7 +119,6 @@ class Downloader:
             images = self.extract_media_list(tweet, include_video)
             for i, image in enumerate(images, 1):
                 self.save_media(image, save_dest, f"{id_str}-{i}", size)
-            self.last_tweet = tweet["id"]
             return len(images)
 
     def get_tweets(self, user, start=None, count=200, rts=False):
