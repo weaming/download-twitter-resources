@@ -12,9 +12,23 @@ logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
 
 class Downloader:
-    def __init__(self, api_key, api_secret, thread_number=4):
-        self.auth = TwitterAuth(api_key, api_secret)
-        self.auth_headers = self.auth.auth_headers()
+    def __init__(
+        self,
+        consumer_key,
+        consumer_secret,
+        access_token=None,
+        access_token_secret=None,
+        thread_number=4,
+        private=False,
+    ):
+        self.auth = TwitterAuth(
+            consumer_key,
+            consumer_secret,
+            access_token,
+            access_token_secret,
+            private=private,
+        )
+        self.auth_headers = None if private else self.auth.auth_headers()
         self.last_tweet = None
         self.count = 0
         self.d = AsyncDownloader(100)
@@ -79,7 +93,11 @@ class Downloader:
             payload["max_id"] = start
 
         # get the request
-        r = requests.get(url, headers=self.auth_headers, params=payload)
+        r = requests.get(
+            url,
+            headers=self.auth_headers or self.auth.auth_headers(url, payload, 'GET'),
+            params=payload,
+        )
 
         # check the response
         if r.status_code == 200:
@@ -93,6 +111,7 @@ class Downloader:
             lg.error(
                 f"An error occurred with the request, status code was {r.status_code}"
             )
+            lg.error(r.text)
             return []
 
     def get_tweet(self, id):
@@ -106,7 +125,11 @@ class Downloader:
         payload = {"id": id, "include_entities": "true"}
 
         # get the request
-        r = requests.get(url, headers=self.auth_headers, params=payload)
+        r = requests.get(
+            url,
+            headers=self.auth_headers or self.auth.auth_headers(url, payload, 'GET'),
+            params=payload,
+        )
 
         # check the response
         if r.status_code == 200:
@@ -117,6 +140,7 @@ class Downloader:
             lg.error(
                 f"An error occurred with the request, status code was {r.status_code}"
             )
+            lg.error(r.text)
             return None
 
     def extract_media_list(self, tweet, include_video):

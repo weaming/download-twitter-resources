@@ -6,3 +6,4 @@ dist/
 test.out.csv
 .pytest_cache/
 .idea/
+.vscode/

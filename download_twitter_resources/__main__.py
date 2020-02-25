@@ -55,6 +55,9 @@ def main():
         "--rts", help="save images contained in retweets", action="store_true"
     )
     parser.add_argument("--thread-number", type=int, default=4)
+    parser.add_argument(
+        "--private", help="download private resources", action='store_true'
+    )
     args = parser.parse_args()
 
     if args.confidential:
@@ -62,12 +65,22 @@ def main():
             confidential = json.loads(f.read())
         if "consumer_key" not in confidential or "consumer_secret" not in confidential:
             raise ConfidentialsNotSuppliedError()
-        api_key = confidential["consumer_key"]
-        api_secret = confidential["consumer_secret"]
+
+        consumer_key = confidential["consumer_key"]
+        consumer_secret = confidential["consumer_secret"]
+        access_token = confidential["access_token"]
+        access_token_secret = confidential["access_token_secret"]
     else:
         raise ConfidentialsNotSuppliedError(args.confidential)
 
-    downloader = Downloader(api_key, api_secret, args.thread_number)
+    downloader = Downloader(
+        consumer_key,
+        consumer_secret,
+        access_token,
+        access_token_secret,
+        args.thread_number,
+        args.private,
+    )
     if args.tweet:
         try:
             args.resource_id = get_tweet_id(args.resource_id)
