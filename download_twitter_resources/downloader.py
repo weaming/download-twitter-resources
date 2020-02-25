@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 
 from download_twitter_resources.auth import TwitterAuth, lg
 from .async_executor import AsyncDownloader, prepare_dir
@@ -7,6 +8,14 @@ from .exceptions import *
 
 DEBUG = os.getenv("DEBUG")
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+
+
+def get_terminal_size():
+    rows, columns = subprocess.check_output(['stty', 'size']).split()
+    return int(rows), int(columns)
+
+
+rows, columns = get_terminal_size()
 
 
 class Downloader:
@@ -33,7 +42,15 @@ class Downloader:
         self.d.start(thread_number)
 
     def download_images_of_user(
-        self, user, save_dest, size="large", limit=3200, rts=False, include_video=False
+        self,
+        user,
+        save_dest,
+        size="large",
+        limit=3200,
+        rts=False,
+        include_video=False,
+        keys_included=[],
+        keys_excluded=[],
     ):
         """Download and save images that user uploaded.
 
@@ -57,7 +74,13 @@ class Downloader:
 
         while len(tweets) > 0 and num_tweets_checked < limit:
             for tweet in tweets:
-                self.process_tweet(tweet, save_dest, include_video=include_video)
+                self.process_tweet(
+                    tweet,
+                    save_dest,
+                    include_video=include_video,
+                    keys_included=keys_included,
+                    keys_excluded=keys_excluded,
+                )
                 num_tweets_checked += 1
 
             tweets = self.get_tweets(user, self.last_tweet, count=limit)
@@ -66,14 +89,36 @@ class Downloader:
             f"no more tweets or the number of tweets checked reach the limit {limit}"
         )
 
-    def process_tweet(self, tweet, save_dest, size="large", include_video=False):
+    def process_tweet(
+        self,
+        tweet,
+        save_dest,
+        size="large",
+        include_video=False,
+        keys_included=[],
+        keys_excluded=[],
+    ):
         id_str = tweet["id_str"]
-        # save the image
-        images = self.extract_media_list(tweet, include_video)
-        for i, image in enumerate(images, 1):
-            self.save_media(image, save_dest, f"{id_str}-{i}", size)
-        self.last_tweet = tweet["id"]
-        return len(images)
+        preview_mode = bool(keys_included or keys_excluded)
+        if preview_mode:
+            text = tweet['text']
+            if any(x in text for x in keys_excluded):
+                return 0
+
+            if any(x in text for x in keys_included):
+                print(tweet['created_at'], tweet['id'])
+                print(text)
+                print('-' * columns)
+                images = self.extract_media_list(tweet, include_video)
+                return len(images)
+            return 0
+        else:
+            # save the image
+            images = self.extract_media_list(tweet, include_video)
+            for i, image in enumerate(images, 1):
+                self.save_media(image, save_dest, f"{id_str}-{i}", size)
+            self.last_tweet = tweet["id"]
+            return len(images)
 
     def get_tweets(self, user, start=None, count=200, rts=False):
         """Download user's tweets and return them as a list.

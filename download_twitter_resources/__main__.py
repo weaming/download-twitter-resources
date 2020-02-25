@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import json
 import re
@@ -58,7 +59,10 @@ def main():
     parser.add_argument(
         "--private", help="download private resources", action='store_true'
     )
+    parser.add_argument("--keys-included", help="filter tweets", nargs='*')
+    parser.add_argument("--keys-excluded", help="filter tweets", nargs='*')
     args = parser.parse_args()
+    print(args)
 
     if args.confidential:
         with open(args.confidential) as f:
@@ -93,7 +97,14 @@ def main():
         downloader.d.join()
     else:
         downloader.download_images_of_user(
-            args.resource_id, args.dest, args.size, args.limit, args.rts, args.video
+            args.resource_id,
+            args.dest,
+            args.size,
+            args.limit,
+            args.rts,
+            args.video,
+            keys_included=args.keys_included or [],
+            keys_excluded=args.keys_excluded or [],
         )
         downloader.d.join()
     print('finished!')
