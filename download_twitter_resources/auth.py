@@ -62,7 +62,9 @@ class TwitterAuth:
             )
         else:
             headers = {"Authorization": "Bearer {}".format(self.bearer_token)}
-            return requests.Session(header=headers)
+            s = requests.Session()
+            s.headers = headers
+            return s
 
     def oauth1a_session(
         self,
