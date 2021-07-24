@@ -34,3 +34,5 @@ optional arguments:
   --rts                 save images contained in retweets
   --thread-number THREAD_NUMBER
 ```
+
+About API rate limits: https://developer.twitter.com/en/docs/twitter-api/v1/rate-limits

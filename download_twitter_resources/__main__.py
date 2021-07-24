@@ -110,5 +110,103 @@ def main():
     print('finished!')
 
 
+def main_followwing():
+    parser = argparse.ArgumentParser(
+        description="Download following users of the given user name"
+    )
+    parser.add_argument("user", help="user screen name")
+    parser.add_argument(
+        "-c",
+        "--confidential",
+        help="a json file containing a key and a secret",
+        default=os.getenv("TWITTER_AUTH", os.path.expanduser("~/.twitter.json")),
+    )
+    args = parser.parse_args()
+    print(args)
+
+    if args.confidential:
+        with open(args.confidential) as f:
+            confidential = json.loads(f.read())
+        if "consumer_key" not in confidential or "consumer_secret" not in confidential:
+            raise ConfidentialsNotSuppliedError()
+
+        consumer_key = confidential["consumer_key"]
+        consumer_secret = confidential["consumer_secret"]
+        access_token = confidential["access_token"]
+        access_token_secret = confidential["access_token_secret"]
+    else:
+        raise ConfidentialsNotSuppliedError(args.confidential)
+
+    downloader = Downloader(
+        consumer_key,
+        consumer_secret,
+        access_token,
+        access_token_secret,
+    )
+    downloader.next_user_cursor = -1
+    users = []
+    while 1:
+        if downloader.next_user_cursor is None:
+            break
+        print('next_user_cursor', downloader.next_user_cursor)
+        us = downloader.get_following(args.user)
+        print('got users', len(us))
+        users += us
+    downloader.d.join()
+    print('got users:', len(users))
+    with open(f'{args.user}.following.json', 'w') as f:
+        json.dump(users, f, indent=2)
+    print('finished!')
+
+
+def main_friends():
+    parser = argparse.ArgumentParser(
+        description="Download friends of the given user name"
+    )
+    parser.add_argument("user", help="user screen name")
+    parser.add_argument(
+        "-c",
+        "--confidential",
+        help="a json file containing a key and a secret",
+        default=os.getenv("TWITTER_AUTH", os.path.expanduser("~/.twitter.json")),
+    )
+    args = parser.parse_args()
+    print(args)
+
+    if args.confidential:
+        with open(args.confidential) as f:
+            confidential = json.loads(f.read())
+        if "consumer_key" not in confidential or "consumer_secret" not in confidential:
+            raise ConfidentialsNotSuppliedError()
+
+        consumer_key = confidential["consumer_key"]
+        consumer_secret = confidential["consumer_secret"]
+        access_token = confidential["access_token"]
+        access_token_secret = confidential["access_token_secret"]
+    else:
+        raise ConfidentialsNotSuppliedError(args.confidential)
+
+    downloader = Downloader(
+        consumer_key,
+        consumer_secret,
+        access_token,
+        access_token_secret,
+    )
+    downloader.next_user_cursor = -1
+    users = []
+    while 1:
+        if downloader.next_user_cursor is None:
+            break
+        print('next_user_cursor', downloader.next_user_cursor)
+        us = downloader.get_friends(args.user)
+        print('got users', len(us))
+        users += us
+    downloader.d.join()
+    print('got users:', len(users))
+    with open(f'{args.user}.friends.json', 'w') as f:
+        json.dump(users, f, indent=2)
+    print('finished!')
+
+
 if __name__ == "__main__":
     main()

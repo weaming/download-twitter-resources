@@ -46,7 +46,9 @@ setup(
     packages=find_packages(exclude=["contrib", "docs", "tests"]),  # Required
     entry_points={
         "console_scripts": [
-            "download-twitter-resources=download_twitter_resources.__main__:main"
+            "download-twitter-resources=download_twitter_resources.__main__:main",
+            "download-twitter-following=download_twitter_resources.__main__:main_followwing",
+            "download-twitter-friends=download_twitter_resources.__main__:main_friends",
         ]
     },  # Optional
     url=gh_repo,  # Optional

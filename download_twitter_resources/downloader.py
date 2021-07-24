@@ -38,9 +38,54 @@ class Downloader:
         )
         self.session = self.auth.session()
         self.last_tweet = None
+        self.next_user_cursor = -1
         self.count = 0
         self.d = AsyncDownloader(100)
         self.d.start(thread_number)
+
+    def get_friends(self, screen_name, cursor=None, count=200):
+        url = "https://api.twitter.com/1.1/friends/list.json"
+        payload = {
+            "screen_name": screen_name,
+            "count": count,
+        }
+        cs = cursor or self.next_user_cursor
+        if cs:
+            payload["cursor"] = cs
+        r = self.session.get(url, params=payload)
+        if r.status_code == 200:
+            res = r.json()
+            users = res['users']
+            self.next_user_cursor = res.get('next_cursor', None) or None  # maybe 0
+            return users
+        else:
+            lg.error(
+                f"An error occurred with the request, status code was {r.status_code}"
+            )
+            lg.error(r.text)
+            return []
+
+    def get_following(self, screen_name, cursor=None, count=200):
+        url = "https://api.twitter.com/1.1/followers/list.json"
+        payload = {
+            "screen_name": screen_name,
+            "count": count,
+        }
+        cs = cursor or self.next_user_cursor
+        if cs:
+            payload["cursor"] = cs
+        r = self.session.get(url, params=payload)
+        if r.status_code == 200:
+            res = r.json()
+            users = res['users']
+            self.next_user_cursor = res.get('next_cursor', None) or None  # maybe 0
+            return users
+        else:
+            lg.error(
+                f"An error occurred with the request, status code was {r.status_code}"
+            )
+            lg.error(r.text)
+            return []
 
     def download_images_of_user(
         self,
